@@ -72,17 +72,12 @@ SPI_HandleTypeDef hspi3;
 
 TIM_HandleTypeDef htim6;
 
+UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
 
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
-extern I2C_HandleTypeDef hI2cHandler;
-VL53L0X_Dev_t Dev =
-{
-  .I2cHandle = &hI2cHandler,
-  .I2cDevAddr = PROXIMITY_I2C_ADDRESS
-};
 /* USER CODE BEGIN PV */
 uint8_t RX_BUFF[1];
 uint8_t status = 0;
@@ -99,14 +94,10 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_TIM6_Init(void);
-
-
-static void VL53L0X_PROXIMITY_MspInit(void);
-static uint16_t VL53L0X_PROXIMITY_GetDistance(void);
-static void VL53L0X_PROXIMITY_Init(void);
+static void MX_UART4_Init(void);
 /* USER CODE BEGIN PFP */
-void Senser_Init(void);
-void Input(void);
+void SENSER_Init(void);
+void INPUT(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -150,20 +141,21 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   MX_TIM6_Init();
+  MX_UART4_Init();
   /* USER CODE BEGIN 2 */
-  Senser_Init();
+  SENSER_Init();
 
-  HAL_UART_Transmit(&huart1, "SELECT SHOW SENSER [1-7]\r\n", 26, 5000);
+  HAL_UART_Transmit( &huart1, "SELECT SHOW SENSER [1-7]\r\n", 26, 5000 );
 
-  __HAL_UART_ENABLE_IT(&huart1,UART_IT_RXNE);
+  __HAL_UART_ENABLE_IT( &huart1, UART_IT_RXNE );
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	Input();
-	/* USER CODE END WHILE */
+	INPUT();
+    /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
@@ -216,10 +208,11 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART3
-                              |RCC_PERIPHCLK_I2C2|RCC_PERIPHCLK_DFSDM1
-                              |RCC_PERIPHCLK_USB;
+                              |RCC_PERIPHCLK_UART4|RCC_PERIPHCLK_I2C2
+                              |RCC_PERIPHCLK_DFSDM1|RCC_PERIPHCLK_USB;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
   PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
+  PeriphClkInit.Uart4ClockSelection = RCC_UART4CLKSOURCE_PCLK1;
   PeriphClkInit.I2c2ClockSelection = RCC_I2C2CLKSOURCE_PCLK1;
   PeriphClkInit.Dfsdm1ClockSelection = RCC_DFSDM1CLKSOURCE_PCLK;
   PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
@@ -441,6 +434,41 @@ static void MX_TIM6_Init(void)
 }
 
 /**
+  * @brief UART4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_UART4_Init(void)
+{
+
+  /* USER CODE BEGIN UART4_Init 0 */
+
+  /* USER CODE END UART4_Init 0 */
+
+  /* USER CODE BEGIN UART4_Init 1 */
+
+  /* USER CODE END UART4_Init 1 */
+  huart4.Instance = UART4;
+  huart4.Init.BaudRate = 9600;
+  huart4.Init.WordLength = UART_WORDLENGTH_8B;
+  huart4.Init.StopBits = UART_STOPBITS_1;
+  huart4.Init.Parity = UART_PARITY_NONE;
+  huart4.Init.Mode = UART_MODE_TX_RX;
+  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN UART4_Init 2 */
+
+  /* USER CODE END UART4_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -605,14 +633,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ARD_D1_Pin ARD_D0_Pin */
-  GPIO_InitStruct.Pin = ARD_D1_Pin|ARD_D0_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
   /*Configure GPIO pins : ARD_D10_Pin SPBTLE_RF_RST_Pin ARD_D9_Pin */
   GPIO_InitStruct.Pin = ARD_D10_Pin|SPBTLE_RF_RST_Pin|ARD_D9_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -715,17 +735,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-
 }
 
 /* USER CODE BEGIN 4 */
-void Senser_Init(void)
+void SENSER_Init(void)
 {
 	BSP_TSENSOR_Init(); 	// TEMPERATURE
 	BSP_PSENSOR_Init(); 	// PRESSURE
@@ -733,10 +746,10 @@ void Senser_Init(void)
 	BSP_MAGNETO_Init(); 	// MAGNETO
 	BSP_GYRO_Init(); 		// GYROSCOPE
 	BSP_ACCELERO_Init(); 	// ACCELERO
-	VL53L0X_PROXIMITY_Init(); //DISTANCE
+	BSP_PROXIMITY_Init(); 	// DISTANCE
 }
 
-void Input(void)
+void INPUT(void)
 {
 	char buffer[30];
 	float temp,hum,pres = 0;
@@ -772,7 +785,7 @@ void Input(void)
 				HAL_UART_Transmit(&huart1, (uint8_t*)buffer, (uint16_t)sprintf(buffer, "MAGNETO is = %d, %d, %d\r\n", mag[0], mag[1], mag[2]), 5000);
 				break;
 			case '7':
-				distance = VL53L0X_PROXIMITY_GetDistance();
+				distance = BSP_PROXIMITY_GetDistance();
 				HAL_UART_Transmit(&huart1, (uint8_t*)buffer, (uint16_t)sprintf(buffer, "DISTANCE is = %d mm\r\n", distance), 5000);
 				break;
 			default:
@@ -788,82 +801,7 @@ void Input(void)
 	}
 }
 
-/**
-  * @brief  VL53L0X proximity sensor Initialization.
-  */
-static void VL53L0X_PROXIMITY_Init(void)
-{
-  uint16_t vl53l0x_id = 0;
-  VL53L0X_DeviceInfo_t VL53L0X_DeviceInfo;
-
-  /* Initialize IO interface */
-  SENSOR_IO_Init();
-  VL53L0X_PROXIMITY_MspInit();
-
-  memset(&VL53L0X_DeviceInfo, 0, sizeof(VL53L0X_DeviceInfo_t));
-
-  if (VL53L0X_ERROR_NONE == VL53L0X_GetDeviceInfo(&Dev, &VL53L0X_DeviceInfo))
-  {
-    if (VL53L0X_ERROR_NONE == VL53L0X_RdWord(&Dev, VL53L0X_REG_IDENTIFICATION_MODEL_ID, (uint16_t *) &vl53l0x_id))
-    {
-      if (vl53l0x_id == VL53L0X_ID)
-      {
-        if (VL53L0X_ERROR_NONE == VL53L0X_DataInit(&Dev))
-        {
-          Dev.Present = 1;
-          SetupSingleShot(Dev);
-        }
-        else
-        {
-          printf("VL53L0X Time of Flight Failed to send its ID!\n");
-        }
-      }
-    }
-    else
-    {
-      printf("VL53L0X Time of Flight Failed to Initialize!\n");
-    }
-  }
-  else
-  {
-    printf("VL53L0X Time of Flight Failed to get infos!\n");
-  }
-}
-
-/**
-  * @brief  Get distance from VL53L0X proximity sensor.
-  * @retval Distance in mm
-  */
-static uint16_t VL53L0X_PROXIMITY_GetDistance(void)
-{
-  VL53L0X_RangingMeasurementData_t RangingMeasurementData;
-
-  VL53L0X_PerformSingleRangingMeasurement(&Dev, &RangingMeasurementData);
-
-  return RangingMeasurementData.RangeMilliMeter;
-}
-
-/**
-  * @brief  VL53L0X proximity sensor Msp Initialization.
-  */
-static void VL53L0X_PROXIMITY_MspInit(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct;
-
-  /*Configure GPIO pin : VL53L0X_XSHUT_Pin */
-  GPIO_InitStruct.Pin = VL53L0X_XSHUT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(VL53L0X_XSHUT_GPIO_Port, &GPIO_InitStruct);
-
-  HAL_GPIO_WritePin(VL53L0X_XSHUT_GPIO_Port, VL53L0X_XSHUT_Pin, GPIO_PIN_SET);
-
-  HAL_Delay(1000);
-}
-
 /* USER CODE END 4 */
-
 
 /**
   * @brief  This function is executed in case of error occurrence.

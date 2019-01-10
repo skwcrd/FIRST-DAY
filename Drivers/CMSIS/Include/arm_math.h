@@ -295,7 +295,7 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
-#define ARM_MATH_CM4
+
 #define __CMSIS_GENERIC         /* disable NVIC and Systick functions */
 
 #if defined(ARM_MATH_CM7)
@@ -311,13 +311,12 @@
   #include "core_cm0plus.h"
   #define ARM_MATH_CM0_FAMILY
 #else
-  //#error "Define according the used Cortex core ARM_MATH_CM7, ARM_MATH_CM4, ARM_MATH_CM3, ARM_MATH_CM0PLUS or ARM_MATH_CM0"
+  #error "Define according the used Cortex core ARM_MATH_CM7, ARM_MATH_CM4, ARM_MATH_CM3, ARM_MATH_CM0PLUS or ARM_MATH_CM0"
 #endif
 
 #undef  __CMSIS_GENERIC         /* enable NVIC and Systick functions */
 #include "string.h"
 #include "math.h"
-#include "stdint.h"
 #ifdef   __cplusplus
 extern "C"
 {
@@ -482,7 +481,8 @@ extern "C"
   /**
    * @brief Clips Q63 to Q31 values.
    */
-  static __INLINE q31_t clip_q63_to_q31(q63_t x)
+  static __INLINE q31_t clip_q63_to_q31(
+  q63_t x)
   {
     return ((q31_t) (x >> 32) != ((q31_t) x >> 31)) ?
       ((0x7FFFFFFF ^ ((q31_t) (x >> 63)))) : (q31_t) x;
@@ -491,7 +491,8 @@ extern "C"
   /**
    * @brief Clips Q63 to Q15 values.
    */
-  static __INLINE q15_t clip_q63_to_q15(q63_t x)
+  static __INLINE q15_t clip_q63_to_q15(
+  q63_t x)
   {
     return ((q31_t) (x >> 32) != ((q31_t) x >> 31)) ?
       ((0x7FFF ^ ((q15_t) (x >> 63)))) : (q15_t) (x >> 15);
@@ -500,7 +501,8 @@ extern "C"
   /**
    * @brief Clips Q31 to Q7 values.
    */
-  static __INLINE q7_t clip_q31_to_q7(q31_t x)
+  static __INLINE q7_t clip_q31_to_q7(
+  q31_t x)
   {
     return ((q31_t) (x >> 24) != ((q31_t) x >> 23)) ?
       ((0x7F ^ ((q7_t) (x >> 31)))) : (q7_t) x;
@@ -509,7 +511,8 @@ extern "C"
   /**
    * @brief Clips Q31 to Q15 values.
    */
-  static __INLINE q15_t clip_q31_to_q15(q31_t x)
+  static __INLINE q15_t clip_q31_to_q15(
+  q31_t x)
   {
     return ((q31_t) (x >> 16) != ((q31_t) x >> 15)) ?
       ((0x7FFF ^ ((q15_t) (x >> 31)))) : (q15_t) x;
@@ -519,7 +522,9 @@ extern "C"
    * @brief Multiplies 32 X 64 and returns 32 bit result in 2.30 format.
    */
 
-  static __INLINE q63_t mult32x64(q63_t x,q31_t y)
+  static __INLINE q63_t mult32x64(
+  q63_t x,
+  q31_t y)
   {
     return ((((q63_t) (x & 0x00000000FFFFFFFF) * y) >> 32) +
             (((q63_t) (x >> 32) * y)));
@@ -555,7 +560,10 @@ extern "C"
    * @brief Function to Calculates 1/in (reciprocal) value of Q31 Data type.
    */
 
-  static __INLINE uint32_t arm_recip_q31(q31_t in,q31_t * dst,q31_t * pRecipTable)
+  static __INLINE uint32_t arm_recip_q31(
+  q31_t in,
+  q31_t * dst,
+  q31_t * pRecipTable)
   {
     q31_t out;
     uint32_t tempVal;
@@ -6741,7 +6749,10 @@ void arm_rfft_fast_f32(
   * @param[in]     Y  interpolation coordinate.
   * @return out interpolated value.
   */
-  static __INLINE float32_t arm_bilinear_interp_f32(const arm_bilinear_interp_instance_f32 * S,float32_t X,float32_t Y)
+  static __INLINE float32_t arm_bilinear_interp_f32(
+  const arm_bilinear_interp_instance_f32 * S,
+  float32_t X,
+  float32_t Y)
   {
     float32_t out;
     float32_t f00, f01, f10, f11;
@@ -6804,7 +6815,10 @@ void arm_rfft_fast_f32(
   * @param[in]     Y  interpolation coordinate in 12.20 format.
   * @return out interpolated value.
   */
-  static __INLINE q31_t arm_bilinear_interp_q31(arm_bilinear_interp_instance_q31 * S,q31_t X,q31_t Y)
+  static __INLINE q31_t arm_bilinear_interp_q31(
+  arm_bilinear_interp_instance_q31 * S,
+  q31_t X,
+  q31_t Y)
   {
     q31_t out;                                   /* Temporary output */
     q31_t acc = 0;                               /* output */
@@ -6875,7 +6889,10 @@ void arm_rfft_fast_f32(
   * @param[in]     Y  interpolation coordinate in 12.20 format.
   * @return out interpolated value.
   */
-  static __INLINE q15_t arm_bilinear_interp_q15(arm_bilinear_interp_instance_q15 * S,q31_t X,q31_t Y)
+  static __INLINE q15_t arm_bilinear_interp_q15(
+  arm_bilinear_interp_instance_q15 * S,
+  q31_t X,
+  q31_t Y)
   {
     q63_t acc = 0;                               /* output */
     q31_t out;                                   /* Temporary output */
@@ -6950,7 +6967,10 @@ void arm_rfft_fast_f32(
   * @param[in]     Y  interpolation coordinate in 12.20 format.
   * @return out interpolated value.
   */
-  static __INLINE q7_t arm_bilinear_interp_q7(arm_bilinear_interp_instance_q7 * S,q31_t X,q31_t Y)
+  static __INLINE q7_t arm_bilinear_interp_q7(
+  arm_bilinear_interp_instance_q7 * S,
+  q31_t X,
+  q31_t Y)
   {
     q63_t acc = 0;                               /* output */
     q31_t out;                                   /* Temporary output */
