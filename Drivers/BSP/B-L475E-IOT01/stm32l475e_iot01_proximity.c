@@ -6,9 +6,16 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32l475e_iot01_hsensor.h"
+#include "stm32l475e_iot01_proximity.h"
 
-static void BSP_PROXIMITY_Init(void)
+extern I2C_HandleTypeDef hI2cHandler;
+VL53L0X_Dev_t Dev =
+{
+	.I2cHandle = &hI2cHandler,
+	.I2cDevAddr = PROXIMITY_I2C_ADDRESS
+};
+
+void BSP_PROXIMITY_Init ( void )
 {
   uint16_t vl53l0x_id = 0;
   VL53L0X_DeviceInfo_t VL53L0X_DeviceInfo;
@@ -51,7 +58,7 @@ static void BSP_PROXIMITY_Init(void)
   * @brief  Get distance from VL53L0X proximity sensor.
   * @retval Distance in mm
   */
-static uint16_t BSP_PROXIMITY_GetDistance(void)
+uint16_t BSP_PROXIMITY_GetDistance ( void )
 {
   VL53L0X_RangingMeasurementData_t RangingMeasurementData;
 
@@ -63,7 +70,7 @@ static uint16_t BSP_PROXIMITY_GetDistance(void)
 /**
   * @brief  VL53L0X proximity sensor Msp Initialization.
   */
-static void BSP_PROXIMITY_MspInit(void)
+void BSP_PROXIMITY_MspInit ( void )
 {
   GPIO_InitTypeDef GPIO_InitStruct;
 

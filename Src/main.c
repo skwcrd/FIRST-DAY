@@ -53,7 +53,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define LPP_DATATYPE_DIGITAL_INPUT  	0x00
+#define LPP_DATATYPE_DIGITAL_OUTPUT  	0x01
+#define LPP_DATATYPE_HUMIDITY       	0x68
+#define LPP_DATATYPE_TEMPERATURE    	0x67
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -79,7 +82,6 @@ UART_HandleTypeDef huart3;
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
-uint8_t RX_BUFF[1];
 uint8_t status = 0;
 /* USER CODE END PV */
 
@@ -97,7 +99,8 @@ static void MX_TIM6_Init(void);
 static void MX_UART4_Init(void);
 /* USER CODE BEGIN PFP */
 void SENSER_Init(void);
-void INPUT(void);
+void Send_Data( uint8_t *Data, uint8_t len );
+void Function_Send_Sensor( void );
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -143,18 +146,24 @@ int main(void)
   MX_TIM6_Init();
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
+  //HAL_TIM_Base_Start_IT( &htim6 );
+
   SENSER_Init();
 
-  HAL_UART_Transmit( &huart1, "SELECT SHOW SENSER [1-7]\r\n", 26, 5000 );
+  __HAL_UART_ENABLE_IT( &huart4, UART_IT_RXNE );
 
-  __HAL_UART_ENABLE_IT( &huart1, UART_IT_RXNE );
+  //__HAL_TIM_ENABLE_IT( &htim6, TIM_IT_UPDATE );
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	INPUT();
+	//if ( status )
+	//{
+		Function_Send_Sensor( );
+		status = 0;
+	//}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -413,7 +422,7 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 999;
+  htim6.Init.Prescaler = 9999;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim6.Init.Period = 40000;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
@@ -458,7 +467,7 @@ static void MX_UART4_Init(void)
   huart4.Init.OverSampling = UART_OVERSAMPLING_16;
   huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart4) != HAL_OK)
+  if ( HAL_UART_Init( &huart4 ) != HAL_OK )
   {
     Error_Handler();
   }
@@ -741,65 +750,130 @@ static void MX_GPIO_Init(void)
 void SENSER_Init(void)
 {
 	BSP_TSENSOR_Init(); 	// TEMPERATURE
-	BSP_PSENSOR_Init(); 	// PRESSURE
 	BSP_HSENSOR_Init(); 	// HUMIDITY
-	BSP_MAGNETO_Init(); 	// MAGNETO
-	BSP_GYRO_Init(); 		// GYROSCOPE
-	BSP_ACCELERO_Init(); 	// ACCELERO
 	BSP_PROXIMITY_Init(); 	// DISTANCE
 }
 
-void INPUT(void)
+/*
+void Send_Data( uint8_t *Data_DAT, uint8_t len_DAT )
 {
-	char buffer[30];
-	float temp,hum,pres = 0;
-	float gyro[3];
-	uint16_t distance = 0;
-	int16_t acc[3],mag[3];
 
-	if (status)
+	if( HAL_UART_Transmit( &huart1, ( uint8_t * )Data_DAT, len_DAT, 5000 )!= HAL_OK )
 	{
-		switch (RX_BUFF[0]) {
-			case '1':
-				pres = BSP_PSENSOR_ReadPressure();
-				HAL_UART_Transmit(&huart1, (uint8_t*)buffer, (uint16_t)sprintf(buffer, "PRESSURE is = %.2f mBar\r\n", pres), 5000);
-				break;
-			case '2':
-				hum = BSP_HSENSOR_ReadHumidity();
-				HAL_UART_Transmit(&huart1, (uint8_t*)buffer, (uint16_t)sprintf(buffer, "Humidity is = %.2f %\r\n", hum), 5000);
-				break;
-			case '3':
-				temp = BSP_TSENSOR_ReadTemp();
-				HAL_UART_Transmit(&huart1, (uint8_t*)buffer, (uint16_t)sprintf(buffer, "Temparature is = %.2f °C\r\n", temp), 5000);
-				break;
-			case '4':
-				BSP_ACCELERO_AccGetXYZ(&acc);
-				HAL_UART_Transmit(&huart1, (uint8_t*)buffer, (uint16_t)sprintf(buffer, "ACCELERO is = %d, %d, %d\r\n", acc[0], acc[1], acc[2]), 5000);
-				break;
-			case '5':
-				BSP_GYRO_GetXYZ(&gyro);
-				HAL_UART_Transmit(&huart1, (uint8_t*)buffer, (uint16_t)sprintf(buffer, "GYRO is = %.2f, %.2f, %.2f\r\n", gyro[0],gyro[1],gyro[2]), 5000);
-				break;
-			case '6':
-				BSP_MAGNETO_GetXYZ(&mag);
-				HAL_UART_Transmit(&huart1, (uint8_t*)buffer, (uint16_t)sprintf(buffer, "MAGNETO is = %d, %d, %d\r\n", mag[0], mag[1], mag[2]), 5000);
-				break;
-			case '7':
-				distance = BSP_PROXIMITY_GetDistance();
-				HAL_UART_Transmit(&huart1, (uint8_t*)buffer, (uint16_t)sprintf(buffer, "DISTANCE is = %d mm\r\n", distance), 5000);
-				break;
-			default:
-				HAL_UART_Transmit(&huart1, "non senser\r\n", 12, 5000);
-				break;
-		}
-		status = 0;
+		Error_Handler( );
 	}
-	else
+
+}
+*/
+void Send_Data( uint8_t *Data, uint8_t len )
+{
+
+	if( HAL_UART_Transmit( &huart4, ( uint8_t * )Data, len, HAL_MAX_DELAY ) != HAL_OK )
 	{
-		status = 0;
-		return;
+		Error_Handler( );
+	}
+
+}
+
+void Function_Send_Sensor( void )
+{
+	uint8_t buffer[64];
+	uint8_t buff[10];
+  uint8_t cchannel = 0;
+  uint32_t i = 0;
+	int16_t temperature = 0;
+	uint16_t humidity 	= 0;
+	uint16_t person_in = 0, person_out = 0;
+
+	float TEMP_VALUE, HUMIDITY_VALUE;
+	//uint16_t Prox_Value;
+
+	TEMP_VALUE      = BSP_TSENSOR_ReadTemp( );
+	HUMIDITY_VALUE  = BSP_HSENSOR_ReadHumidity( );
+	//Prox_Value = BSP_PROXIMITY_GetDistance( );
+
+	temperature	= ( int16_t )( TEMP_VALUE * 10 );
+	humidity	  = ( uint16_t )( HUMIDITY_VALUE * 2 );
+
+  // TEMPERATURE SENSOR
+  buff[i++] = cchannel++;
+	buff[i++] = LPP_DATATYPE_TEMPERATURE;
+	buff[i++] = ( uint8_t )( ( temperature >> 8 ) & 0xFF );
+	buff[i++] = ( uint8_t )( temperature & 0xFF );
+	// HUMIDITY SENSOR
+  buff[i++] = cchannel++;
+	buff[i++] = LPP_DATATYPE_HUMIDITY;
+	buff[i++] = ( uint8_t )( humidity & 0xFF );
+	// PERSOM IN
+  buff[i++] = cchannel++;
+	buff[i++] = LPP_DATATYPE_DIGITAL_INPUT;
+	buff[i++] = ( uint8_t )( person_in & 0xFF );
+	// PERSOM OUT
+  buff[i++] = cchannel++;
+	buff[i++] = LPP_DATATYPE_DIGITAL_OUTPUT;
+	buff[i++] = ( uint8_t )( person_out & 0xFF );
+  Send_Data( "AT+JOIN\n", 8 );
+	Send_Data( buffer, sprintf( buffer, "AT+SENDB=99:%x%x%x%x%x%x%x%x%x%x%x%x%x\n", buff[0], buff[1], buff[2], buff[3], buff[4], buff[5], buff[6], buff[7], buff[8], buff[9], buff[10], buff[11], buff[12] ) );
+}
+
+/*
+void Function_Send_Sensor( void )
+{
+	uint8_t len, SEND_BUF[64];
+	float Temp_Value, Hum_Value, Pressure_Value;
+	int16_t Mag_Value[3], Acc_Value[3];
+	float Gyro_Value[3];
+	uint16_t Prox_Value;
+
+	switch ( RX_BUFF[0] ) {
+		case '1':
+			Pressure_Value = BSP_PSENSOR_ReadPressure( );
+			len = sprintf( SEND_BUF, "PRESSURE is = %.2f mBar\r\n", Pressure_Value );
+			Send_Data( SEND_BUF, len );
+			break;
+		case '2':
+			Hum_Value = BSP_HSENSOR_ReadHumidity( );
+			len = sprintf( SEND_BUF, "HUMIDITY is = %.2f %%\r\n", Hum_Value );
+			Send_Data( SEND_BUF, len );
+			break;
+		case '3':
+			Temp_Value = BSP_TSENSOR_ReadTemp( );
+			len = sprintf( SEND_BUF, "TEMPERATURE is = %.2f ï¿½C\r\n", Temp_Value );
+			Send_Data( SEND_BUF, len );
+			break;
+		case '4':
+			BSP_ACCELERO_AccGetXYZ( Acc_Value );
+			len = sprintf( SEND_BUF, "ACCELERO xyz = %d, %d, %d\r\n", Acc_Value[0], Acc_Value[1], Acc_Value[2] );
+			Send_Data( SEND_BUF, len );
+			break;
+		case '5':
+			BSP_GYRO_GetXYZ( Gyro_Value );
+			len = sprintf( SEND_BUF, "GYRO xyz = %.2f, %.2f, %.2f\r\n", Gyro_Value[0], Gyro_Value[1], Gyro_Value[2] );
+			Send_Data( SEND_BUF, len );
+			break;
+		case '6':
+			BSP_MAGNETO_GetXYZ( Mag_Value );
+			len = sprintf( SEND_BUF, "MAGNETO xyz = %d, %d, %d\r\n", Mag_Value[0], Mag_Value[1], Mag_Value[2] );
+			Send_Data( SEND_BUF, len );
+			break;
+		case '7':
+			Prox_Value = BSP_PROXIMITY_GetDistance( );
+			len = sprintf( SEND_BUF, "DISTANCE is = %d mm\r\n", Prox_Value );
+			Send_Data( SEND_BUF, len );
+			break;
+		default:
+			len = sprintf( SEND_BUF, "no sensor\r\n" );
+			Send_Data( SEND_BUF, len );
+			break;
 	}
 }
+*/
+
+/*void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	BSP_LED_Toggle(LED_GREEN);
+
+}*/
 
 /* USER CODE END 4 */
 

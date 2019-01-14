@@ -38,6 +38,7 @@
 #include "stm32l4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -74,7 +75,6 @@
 extern TIM_HandleTypeDef htim6;
 extern UART_HandleTypeDef huart4;
 /* USER CODE BEGIN EV */
-extern uint8_t RX_BUFF[];
 extern uint8_t status;
 /* USER CODE END EV */
 
@@ -224,7 +224,11 @@ void UART4_IRQHandler(void)
   /* USER CODE END UART4_IRQn 0 */
   HAL_UART_IRQHandler(&huart4);
   /* USER CODE BEGIN UART4_IRQn 1 */
-
+  //RX_BUFF[0] = ->RDR;
+  /*if ( UART4->ISR ) {
+	  if ( UART4->RDR == 0xFF ) status = 1;
+  }*/
+  status = 1;
   /* USER CODE END UART4_IRQn 1 */
 }
 
